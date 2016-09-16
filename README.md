@@ -14,7 +14,7 @@ Usage
 ```go
 import "github.com/vrischmann/go-metrics-influxdb"
 
-go influxdb.InfluxDB(
+go influxdb.NewReporter(
     metrics.DefaultRegistry, // metrics registry
     time.Second * 10,        // interval
     "http://localhost:8086", // the InfluxDB url
