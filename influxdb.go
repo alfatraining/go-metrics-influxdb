@@ -20,16 +20,18 @@ type reporter struct {
 	password string
 	tags     map[string]string
 
+	useOneTimePerSend bool // if set to true, each individual call to send will use the same time.Now value
+
 	client *client.Client
 }
 
 // NewReporter starts a InfluxDB reporter which will post the metrics from the given registry at each d interval.
-func NewReporter(r metrics.Registry, d time.Duration, url, database, username, password string) {
-	NewReporterWithTags(r, d, url, database, username, password, nil)
+func NewReporter(r metrics.Registry, d time.Duration, url, database, username, password string, useOneTimePerSend bool) {
+	NewReporterWithTags(r, d, url, database, username, password, nil, useOneTimePerSend)
 }
 
 // NewReporterWithTags starts a InfluxDB reporter which will post the metrics from the given registry at each d interval with the specified tags
-func NewReporterWithTags(r metrics.Registry, d time.Duration, url, database, username, password string, tags map[string]string) {
+func NewReporterWithTags(r metrics.Registry, d time.Duration, url, database, username, password string, tags map[string]string, useOneTimePerSend bool) {
 	u, err := uurl.Parse(url)
 	if err != nil {
 		log.Printf("unable to parse InfluxDB url %s. err=%v", url, err)
@@ -44,6 +46,9 @@ func NewReporterWithTags(r metrics.Registry, d time.Duration, url, database, use
 		username: username,
 		password: password,
 		tags:     tags,
+	}
+	if useOneTimePerSend {
+		rep.useOneTimePerSend = true
 	}
 	if err := rep.makeClient(); err != nil {
 		log.Printf("unable to make InfluxDB client. err=%v", err)
@@ -88,9 +93,12 @@ func (r *reporter) run() {
 
 func (r *reporter) send() error {
 	var pts []client.Point
+	now := time.Now()
 
 	r.reg.Each(func(name string, i interface{}) {
-		now := time.Now()
+		if !r.useOneTimePerSend {
+			now = time.Now()
+		}
 
 		switch metric := i.(type) {
 		case metrics.Counter:
