@@ -10,6 +10,12 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+// A MultiMeasurementProvider can provide multiple points to be sent at once.
+// When taking the measurements it should take a snapshot of the current state.
+type MultiMeasurementProvider interface {
+	GetMeasurements(defaultTags map[string]string, now time.Time) []client.Point
+}
+
 type reporter struct {
 	reg      metrics.Registry
 	interval time.Duration
@@ -117,6 +123,8 @@ func (r *reporter) send() error {
 		}
 
 		switch metric := i.(type) {
+		case MultiMeasurementProvider:
+			pts = append(pts, metric.GetMeasurements(r.tags, now)...)
 		case metrics.Counter:
 			ms := metric.Snapshot()
 			pts = append(pts, client.Point{
