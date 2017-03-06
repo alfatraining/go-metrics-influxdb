@@ -91,6 +91,22 @@ func (r *reporter) run() {
 	}
 }
 
+// GetApplicableTags returns the map of merged tags for a metric and the default tags.
+func GetApplicableTags(t metrics.Taggable, defaultTags map[string]string) map[string]string {
+	metricTags := t.GetTags()
+	if len(defaultTags) == 0 && len(metricTags) == 0 {
+		return nil
+	}
+	tags := map[string]string{}
+	for k, v := range defaultTags {
+		tags[k] = v
+	}
+	for k, v := range metricTags {
+		tags[k] = v
+	}
+	return tags
+}
+
 func (r *reporter) send() error {
 	var pts []client.Point
 	now := time.Now()
@@ -105,7 +121,7 @@ func (r *reporter) send() error {
 			ms := metric.Snapshot()
 			pts = append(pts, client.Point{
 				Measurement: fmt.Sprintf("%s.count", name),
-				Tags:        r.tags,
+				Tags:        GetApplicableTags(ms, r.tags),
 				Fields: map[string]interface{}{
 					"value": ms.Count(),
 				},
