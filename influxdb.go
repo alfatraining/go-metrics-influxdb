@@ -58,6 +58,7 @@ func (r *reporter) makeClient() (err error) {
 		URL:      r.url,
 		Username: r.username,
 		Password: r.password,
+		Timeout:  time.Second * 5,
 	})
 
 	return
